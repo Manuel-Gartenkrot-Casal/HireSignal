@@ -108,7 +108,8 @@ class GetonbrdSpider:
 _QUERIES = ["", "desarrollador", "backend", "frontend", "data", "devops", "qa"]
 
 # Getonbrd devuelve modality y seniority como IDs; mapeo conservador basado
-# en el orden del sitio. Si el ID no está, se deja vacío.
+# en el orden del sitio. Los seniority usan los mismos tokens que el
+# clasificador (hire_signal/filters.py) para que el API los agrupe bien.
 _MODALIDADES = {
     1: "Remoto",
     2: "Híbrido",
@@ -117,12 +118,12 @@ _MODALIDADES = {
 }
 
 _SENIORITIES = {
-    1: "Trainee",
-    2: "Junior",
-    3: "Semi Senior",
-    4: "Senior",
-    5: "Lead",
-    6: "Staff",
+    1: "junior",   # Trainee
+    2: "junior",   # Junior
+    3: "mid",      # Semi Senior
+    4: "senior",   # Senior
+    5: "lead",     # Lead
+    6: "lead",     # Staff
 }
 
 

@@ -46,7 +46,10 @@ def _get_json(url: str) -> Optional[object]:
 
 
 def _url_is_ats(json_url: str) -> bool:
-    return "boards-api.greenhouse.io" in json_url or "lever.co" in json_url or "ashbyhq.com" in json_url
+    return any(
+        d in json_url
+        for d in ["boards-api.greenhouse.io", "lever.co", "ashbyhq.com", "api.smartrecruiters.com"]
+    )
 
 
 class BaseSpider(Protocol):

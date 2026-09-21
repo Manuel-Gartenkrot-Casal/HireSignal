@@ -8,6 +8,11 @@ BASE = {
     "greenhouse": "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs",
     "lever": "https://api.lever.co/v0/postings/{slug}?mode=json",
     "ashby": "https://api.ashbyhq.com/posting-api/job-board/{slug}",
+    "smartrecruiters": "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=5",
+}
+# ATS sin slug en la URL: valida contra su endpoint booleano.
+NO_SLUG = {
+    "meli": "https://careers-meli.mercadolibre.com/api/positions?start=0&country=Argentina",
 }
 TIMEOUT = 12
 
@@ -21,9 +26,14 @@ def validar(companies_path: Path) -> None:
         ats = c.get("ats")
         slug = c.get("slug", "")
         if not slug:
-            print(f"  [SIN SLUG] {c['name']} ({ats})")
-            continue
-        url = BASE[ats].format(slug=slug)
+            if ats in NO_SLUG:
+                slug = c.get("country") or "-"
+                url = NO_SLUG[ats]
+            else:
+                print(f"  [SIN SLUG] {c['name']} ({ats})")
+                continue
+        else:
+            url = BASE[ats].format(slug=slug)
         try:
             r = requests.get(url, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
             if r.status_code == 200:
