@@ -1,0 +1,17 @@
+{
+  "name": "hiresignal-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node src/server.js",
+    "build:web": "cd web && npm run build",
+    "build": "npm run build:web",
+    "start": "node src/server.js",
+    "setup": "npm install && cd web && npm install && cd .. && npm run build:web"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongodb": "^6.8.0",
+    "dotenv": "^16.4.5"
+  }
+}

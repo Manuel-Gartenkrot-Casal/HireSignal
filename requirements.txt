@@ -1,0 +1,9 @@
+scrapling[fetchers]
+pymongo[srv]
+requests
+python-dotenv
+apscheduler
+gspread
+google-auth
+beautifulsoup4
+lxml

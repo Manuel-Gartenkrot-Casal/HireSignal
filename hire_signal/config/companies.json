@@ -1,0 +1,38 @@
+{
+  "_comment": "Empresas target. Slugs de Greenhouse/Lever/Ashby verificados con el validador: scripts/validate_companies.py. Los que figuran sin slug validado NO se consultan todavia: hay que descubrir el slug correcto del board (buscalo en careers.* de cada empresa). region: latam|us|eu|ca.",
+  "companies": [
+    {"name": "Mercado Libre", "ats": "greenhouse", "slug": "", "region": "latam"},
+    {"name": "Globant", "ats": "greenhouse", "slug": "", "region": "latam"},
+    {"name": "Nubank", "ats": "greenhouse", "slug": "nubank", "region": "latam"},
+    {"name": "Duolingo", "ats": "greenhouse", "slug": "duolingo", "region": "us"},
+    {"name": "GitLab", "ats": "greenhouse", "slug": "gitlab", "region": "us"},
+    {"name": "Datadog", "ats": "greenhouse", "slug": "datadog", "region": "us"},
+    {"name": "Instacart", "ats": "greenhouse", "slug": "instacart", "region": "us"},
+    {"name": "Airbnb", "ats": "greenhouse", "slug": "airbnb", "region": "us"},
+    {"name": "Pinterest", "ats": "greenhouse", "slug": "pinterest", "region": "us"},
+    {"name": "LaunchDarkly", "ats": "greenhouse", "slug": "launchdarkly", "region": "us"},
+    {"name": "Algolia", "ats": "greenhouse", "slug": "algolia", "region": "us"},
+    {"name": "Stripe", "ats": "greenhouse", "slug": "stripe", "region": "us"},
+    {"name": "Twilio", "ats": "greenhouse", "slug": "twilio", "region": "us"},
+
+    {"name": "N26", "ats": "lever", "slug": "n26", "region": "eu"},
+    {"name": "HubSpot", "ats": "lever", "slug": "hubspot", "region": "us"},
+    {"name": "Postscript", "ats": "lever", "slug": "postscript", "region": "us"},
+    {"name": "Canva", "ats": "lever", "slug": "canva", "region": "us"},
+    {"name": "Melio", "ats": "lever", "slug": "melio", "region": "us"},
+    {"name": "Unito", "ats": "lever", "slug": "unito", "region": "ca"},
+
+    {"name": "Vercel", "ats": "ashby", "slug": "vercel", "region": "us"},
+    {"name": "Linear", "ats": "ashby", "slug": "linear", "region": "us"},
+    {"name": "Figma", "ats": "ashby", "slug": "figma", "region": "us"},
+    {"name": "Notion", "ats": "ashby", "slug": "notion", "region": "us"},
+    {"name": "Mercury", "ats": "ashby", "slug": "mercury", "region": "us"},
+    {"name": "Ramp", "ats": "ashby", "slug": "ramp", "region": "us"},
+    {"name": "Brex", "ats": "ashby", "slug": "brex", "region": "us"},
+    {"name": "Amplitude", "ats": "ashby", "slug": "amplitude", "region": "us"},
+    {"name": "Framer", "ats": "ashby", "slug": "framer", "region": "us"},
+    {"name": "PostHog", "ats": "ashby", "slug": "posthog", "region": "us"},
+    {"name": "Sourcegraph", "ats": "ashby", "slug": "sourcegraph", "region": "us"},
+    {"name": "Deepgram", "ats": "ashby", "slug": "deepgram", "region": "us"}
+  ]
+}
