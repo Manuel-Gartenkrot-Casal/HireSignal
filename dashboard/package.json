@@ -2,6 +2,7 @@
   "name": "hiresignal-dashboard",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "node src/server.js",
     "build:web": "cd web && npm run build",

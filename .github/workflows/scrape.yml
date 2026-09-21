@@ -1,0 +1,33 @@
+name: Scrape (HireSignal Feed)
+
+on:
+  schedule:
+    # Lunes 08:00 UTC (YAML crontab, zona UTC)
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - "hire_signal/**"
+      - "requirements.txt"
+      - "scripts/github_action.py"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      MONGO_DB: ${{ secrets.MONGO_DB }}
+      GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Correr scraping y guardar en MongoDB
+        run: python scripts/github_action.py
