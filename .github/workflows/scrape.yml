@@ -31,12 +31,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Preparar credenciales de Google Sheets (si configuradas)
+        if: env.GOOGLE_SHEET_ID != ''
+        env:
+          GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
         run: |
-          if [ -n "${{ secrets.GOOGLE_SHEETS_CREDS }}" ]; then
-            echo "${{ secrets.GOOGLE_SHEETS_CREDS }}" > "$RUNNER_TEMP/service-account.json"
+          if [ -n "$GOOGLE_SHEETS_CREDS" ]; then
+            printf '%s' "$GOOGLE_SHEETS_CREDS" > "$RUNNER_TEMP/service-account.json"
             echo "GOOGLE_SHEETS_CREDS_PATH=$RUNNER_TEMP/service-account.json" >> "$GITHUB_ENV"
+            echo "Credenciales de Google Sheets preparadas."
           else
-            echo "Sin credenciales de Google Sheets; se omite el export."
+            echo "Sin secret GOOGLE_SHEETS_CREDS; se omite el export a Sheets (no es un error)."
           fi
 
       - name: Correr scraping y guardar en MongoDB
