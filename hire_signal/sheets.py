@@ -1,4 +1,6 @@
+import json
 import os
+import tempfile
 
 from dotenv import load_dotenv
 
@@ -7,13 +9,40 @@ load_dotenv()
 COLUMNAS = ["Empresa", "Rol", "Seniority", "Tech", "Fuente", "Fecha", "Link"]
 
 
+def _credenciales_path() -> str:
+    """Devuelve una ruta a un service-account JSON.
+
+    Soporta dos modos:
+    - GOOGLE_SHEETS_CREDS_PATHS: ruta a un archivo existente (local).
+    - GOOGLE_SHEETS_CREDS: contenido JSON completo (secret de GitHub Actions).
+    """
+    path = os.getenv("GOOGLE_SHEETS_CREDS_PATH")
+    content = os.getenv("GOOGLE_SHEETS_CREDS")
+    if path and os.path.exists(path):
+        return path
+    if content:
+        try:
+            json.loads(content)
+        except json.JSONDecodeError:
+            raise ValueError("GOOGLE_SHEETS_CREDS no es un JSON service-account válido")
+        tmp = os.path.join(tempfile.gettempdir(), "hs-service-account.json")
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(content)
+        return tmp
+    if os.path.exists("service-account.json"):
+        return "service-account.json"
+    raise ValueError(
+        "Credenciales de Google Sheets no encontradas: definí GOOGLE_SHEETS_CREDS "
+        "(JSON) o GOOGLE_SHEETS_CREDS_PATH (ruta a archivo)"
+    )
+
+
 def conectar_sheet():
     import gspread
     from google.oauth2.service_account import Credentials
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds_path = os.getenv("GOOGLE_SHEETS_CREDS", "service-account.json")
-    creds = Credentials.from_service_account_file(creds_path, scopes=scopes)
+    creds = Credentials.from_service_account_file(_credenciales_path(), scopes=scopes)
     gc = gspread.authorize(creds)
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     if not sheet_id:

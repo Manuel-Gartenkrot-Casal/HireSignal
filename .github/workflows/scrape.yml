@@ -10,6 +10,7 @@ on:
       - "hire_signal/**"
       - "requirements.txt"
       - "scripts/github_action.py"
+      - ".github/workflows/scrape.yml"
 
 jobs:
   scrape:
@@ -28,6 +29,15 @@ jobs:
 
       - name: Instalar dependencias
         run: pip install -r requirements.txt
+
+      - name: Preparar credenciales de Google Sheets (si configuradas)
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SHEETS_CREDS }}" ]; then
+            echo "${{ secrets.GOOGLE_SHEETS_CREDS }}" > "$RUNNER_TEMP/service-account.json"
+            echo "GOOGLE_SHEETS_CREDS_PATH=$RUNNER_TEMP/service-account.json" >> "$GITHUB_ENV"
+          else
+            echo "Sin credenciales de Google Sheets; se omite el export."
+          fi
 
       - name: Correr scraping y guardar en MongoDB
         env:
