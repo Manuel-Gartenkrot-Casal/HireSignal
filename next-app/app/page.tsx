@@ -31,10 +31,12 @@ export default function Page() {
       <main className="flex flex-1 flex-col items-start justify-center gap-10 px-6">
         <div className="flex max-w-xl flex-col gap-3">
           <h1 className="text-4xl font-medium tracking-tight">
-            Inteligencia de contratación
+            Sabé quién está por comprar
           </h1>
           <p className="text-muted-foreground">
-            Vacantes de empresas target, normalizadas y sin duplicados.
+            Cuando una empresa abre seis roles de data en una semana, está
+            armando un equipo y va a necesitar herramientas. HireSignal detecta
+            esas señales en ~100 empresas tech y te las da listas para tu CRM.
           </p>
         </div>
 

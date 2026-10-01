@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { armarFiltro } from '../src/filtro.js';
+import { armarFiltro, pipelineEmpresas } from '../src/filtro.js';
 
 test('un objeto en la query no inyecta operadores', () => {
   const f = armarFiltro({ source: { $ne: 'x' }, role: { $gt: '' } });
@@ -22,4 +22,17 @@ test('days filtra por fecha ISO', () => {
 
 test('sin parametros solo filtra activos', () => {
   assert.deepEqual(armarFiltro({}), { active: true });
+});
+
+test('company filtra exacto y sin operadores', () => {
+  assert.deepEqual(armarFiltro({ company: { $ne: 'x' } }).company, '[object Object]');
+  assert.equal(armarFiltro({ company: 'Stripe' }).company, 'Stripe');
+});
+
+test('pipelineEmpresas corta nuevas por first_seen', () => {
+  const ahora = Date.parse('2026-01-10T00:00:00Z');
+  const corte = (p) => p[2].$group.nuevas.$sum.$cond[0].$and[0].$gte[1];
+  assert.equal(corte(pipelineEmpresas('7', ahora)), '2026-01-03T00:00:00.000Z');
+  assert.equal(corte(pipelineEmpresas('abc', ahora)), '2026-01-03T00:00:00.000Z');
+  assert.equal(corte(pipelineEmpresas('30', ahora)), '2025-12-11T00:00:00.000Z');
 });

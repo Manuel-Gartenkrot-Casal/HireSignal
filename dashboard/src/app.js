@@ -5,7 +5,7 @@ import fs from 'fs';
 import express from 'express';
 import * as mongo from 'mongodb';
 
-import { armarFiltro } from './filtro.js';
+import { armarFiltro, pipelineEmpresas } from './filtro.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +52,16 @@ export default function createApp() {
         .toArray();
 
       res.json(jobs);
+    } catch (err) {
+      fallar(res, err);
+    }
+  });
+
+  // ── GET /api/companies ─────────────────────────────────────────────────────
+  app.get('/api/companies', async (req, res) => {
+    try {
+      const db = await getDB();
+      res.json(await db.collection('jobs').aggregate(pipelineEmpresas(req.query.days)).toArray());
     } catch (err) {
       fallar(res, err);
     }

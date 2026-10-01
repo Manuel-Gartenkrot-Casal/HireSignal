@@ -31,7 +31,16 @@ export interface Stats {
   actualizado: string | null;
 }
 
+export interface CompanySignal {
+  empresa: string;
+  activas: number;
+  nuevas: number;
+  senior: number;
+  areas: { area: string; n: number; nuevas: number }[];
+}
+
 export interface JobsParams {
+  company?: string;
   role?: string;
   seniority?: string;
   source?: string;
@@ -50,12 +59,17 @@ export function fetchStats(): Promise<Stats> {
   return getJSON<Stats>("/api/stats");
 }
 
+export function fetchCompanies(days = 7): Promise<CompanySignal[]> {
+  return getJSON<CompanySignal[]>(`/api/companies?days=${days}`);
+}
+
 export function fetchJobs(params: JobsParams): Promise<Job[]> {
   const sp = new URLSearchParams();
   if (params.role && params.role !== "all") sp.set("role", params.role);
   if (params.seniority && params.seniority !== "all")
     sp.set("seniority", params.seniority);
   if (params.source && params.source !== "all") sp.set("source", params.source);
+  if (params.company) sp.set("company", params.company);
   if (params.q) sp.set("q", params.q);
   if (params.days) sp.set("days", String(params.days));
   sp.set("limit", String(params.limit ?? 100));

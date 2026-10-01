@@ -1,6 +1,9 @@
 # HireSignal
 
-Feed de inteligencia de contratación: scraping de vacantes de empresas target (ATS Greenhouse / Lever / Ashby / GetOnBrd), normalización, dedupe y dashboard web.
+Señales de compra para equipos de ventas B2B: qué empresas tech están acelerando su
+contratación y en qué áreas (data, backend, seguridad…), a partir de sus vacantes públicas
+(ATS Greenhouse / Lever / Ashby / SmartRecruiters / GetOnBrd). Normalización, dedupe,
+dashboard con ranking por empresa y export CSV para el CRM.
 
 ## Arquitectura
 
@@ -155,7 +158,8 @@ GitHub Actions (`ci.yml`) corre lo mismo más `tsc` y el build del dashboard en 
 
 | Endpoint | Parámetros | Devuelve |
 |---|---|---|
-| `GET /api/jobs` | `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000) | vacantes activas, más recientes primero |
+| `GET /api/companies` | `days` (default 7) | ranking por empresa: `activas`, `nuevas` (vistas por primera vez en `days`, sin contar la primera carga de la empresa), `senior` y top 3 `areas` (sin `other`); ordenado por `nuevas` |
+| `GET /api/jobs` | `company` (exacto), `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000) | vacantes activas, más recientes primero |
 | `GET /api/stats` | - | totales por seniority, rol y fuente, publicaciones de los últimos 30 días y `actualizado` (último `last_seen`) |
 | `GET /api/health` | - | `{ ok, db }` |
 

@@ -26,12 +26,17 @@ import {
   BarChart,
   ChartTooltip,
   Grid,
-  PieCenter,
-  PieChart,
-  PieSlice,
 } from "@/components/charts";
 import { cn } from "@/lib/utils";
-import { fetchJobs, fetchStats, type Bucket, type Job, type Stats } from "@/lib/api";
+import {
+  fetchCompanies,
+  fetchJobs,
+  fetchStats,
+  type Bucket,
+  type CompanySignal,
+  type Job,
+  type Stats,
+} from "@/lib/api";
 
 type SeniorityColor = Record<string, string>;
 
@@ -195,60 +200,116 @@ function BarChartCard({ data }: { data: Bucket[] }) {
   );
 }
 
-function PieChartCard({ data }: { data: Bucket[] }) {
-  const pies = useMemo(
-    () =>
-      data.map((d, i) => ({
-        label: d._id,
-        value: d.n,
-        color: CHART_COLORS[i % CHART_COLORS.length],
-      })),
-    [data]
-  );
+const areaLabel = (a: string) => ROLE_LABEL[a] ?? a;
+const pctSenior = (c: CompanySignal) => Math.round((100 * c.senior) / c.activas);
 
+/** CSV para importar al CRM; las comillas protegen comas en nombres y áreas. */
+function exportarCSV(empresas: CompanySignal[]) {
+  const celda = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const filas = [
+    ["empresa", "vacantes_activas", "nuevas_7d", "pct_senior", "areas"],
+    ...empresas.map((c) => [
+      c.empresa,
+      c.activas,
+      c.nuevas,
+      pctSenior(c),
+      c.areas.map((a) => `${areaLabel(a.area)} (${a.n})`).join("; "),
+    ]),
+  ];
+  const blob = new Blob([filas.map((f) => f.map(celda).join(",")).join("\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `hiresignal-empresas-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function SignalsTable({
+  empresas,
+  seleccionada,
+  onSelect,
+}: {
+  empresas: CompanySignal[] | null;
+  seleccionada: string;
+  onSelect: (empresa: string) => void;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Por fuente</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {pies.length ? (
-          <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <PieChart
-              className="w-52 shrink-0"
-              data={pies}
-              innerRadius={55}
-              padAngle={0.02}
-              cornerRadius={4}
-            >
-              {pies.map((p, i) => (
-                <PieSlice hoverEffect="translate" index={i} key={p.label} />
-              ))}
-              <PieCenter defaultLabel="total" />
-            </PieChart>
-            <div className="flex w-full flex-col gap-1.5 text-sm">
-              {pies.map((p) => (
-                <div
-                  className="flex items-center justify-between gap-2"
-                  key={p.label}
-                >
-                  <span className="flex items-center gap-2 capitalize">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: p.color }}
-                    />
-                    {p.label}
-                  </span>
-                  <span className="font-mono tabular-nums">
-                    {p.value.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm">Señales de compra por empresa</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Empresas que más aceleraron su contratación esta semana. Clic para ver sus vacantes.
+            </p>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Sin datos.</p>
-        )}
+          <button
+            className="glass h-9 shrink-0 rounded-md px-3 text-sm disabled:opacity-50"
+            disabled={!empresas?.length}
+            onClick={() => empresas && exportarCSV(empresas)}
+            type="button"
+          >
+            Exportar CSV
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent className="max-h-[480px] overflow-y-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Empresa</TableHead>
+              <TableHead className="text-right">Nuevas 7d</TableHead>
+              <TableHead className="text-right">Activas</TableHead>
+              <TableHead className="hidden md:table-cell">Dónde contratan</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">% Senior</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {empresas === null
+              ? Array.from({ length: 6 }, (_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={5}>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              : empresas.map((c) => (
+                  <TableRow
+                    className={cn("cursor-pointer", c.empresa === seleccionada && "bg-muted")}
+                    key={c.empresa}
+                    onClick={() => onSelect(c.empresa === seleccionada ? "" : c.empresa)}
+                  >
+                    <TableCell className="font-medium">
+                      <button
+                        aria-pressed={c.empresa === seleccionada}
+                        className="text-left hover:text-primary"
+                        type="button"
+                      >
+                        {c.empresa}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {c.nuevas > 0 ? `+${c.nuevas}` : "0"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">{c.activas}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {c.areas.map((a) => (
+                          <Badge key={a.area} variant="outline">
+                            {areaLabel(a.area)} · {a.n}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden text-right font-mono tabular-nums text-muted-foreground sm:table-cell">
+                      {pctSenior(c)}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -387,6 +448,8 @@ function ThemeToggle() {
 
 export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [empresas, setEmpresas] = useState<CompanySignal[] | null>(null);
+  const [company, setCompany] = useState("");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -399,6 +462,7 @@ export default function App() {
 
   useEffect(() => {
     fetchStats().catch(() => null).then(setStats);
+    fetchCompanies().catch(() => []).then(setEmpresas);
   }, []);
 
   useEffect(() => {
@@ -406,14 +470,14 @@ export default function App() {
     let vigente = true;
     setLoading(true);
     setError(false);
-    fetchJobs({ q: qDebounced || undefined, seniority, role, source, days: soloNuevas ? 7 : undefined })
+    fetchJobs({ company: company || undefined, q: qDebounced || undefined, seniority, role, source, days: soloNuevas ? 7 : undefined })
       .then((j) => vigente && setJobs(j))
       .catch(() => vigente && (setJobs([]), setError(true)))
       .finally(() => vigente && setLoading(false));
     return () => {
       vigente = false;
     };
-  }, [qDebounced, seniority, role, source, soloNuevas]);
+  }, [company, qDebounced, seniority, role, source, soloNuevas]);
 
   const seniorityOptions = useMemo(
     () => [
@@ -465,7 +529,7 @@ export default function App() {
             <p className="hidden text-sm text-muted-foreground sm:block">
               {stats?.actualizado
                 ? `${diasDesde(stats.actualizado) > 9 ? "Datos desactualizados: " : ""}actualizado el ${new Date(stats.actualizado).toLocaleDateString("es-AR")}`
-                : "Feed de vacantes"}
+                : "Señales de contratación"}
             </p>
             <ThemeToggle />
           </div>
@@ -494,23 +558,36 @@ export default function App() {
           />
           <StatCard
             index={3}
-            label="Fuentes"
-            sub={(stats?.porFuente ?? []).length + " ATS"}
-            value={(stats?.porFuente ?? []).length}
+            label="Empresas acelerando"
+            sub="con vacantes nuevas en 7 días"
+            value={(empresas ?? []).filter((c) => c.nuevas > 0).length}
           />
         </section>
+
+        <SignalsTable empresas={empresas} onSelect={setCompany} seleccionada={company} />
 
         <section className="grid gap-6 lg:grid-cols-2">
           <AreaChartCard data={stats?.recientes ?? []} />
           <BarChartCard data={stats?.porSeniority ?? []} />
         </section>
 
-        <PieChartCard data={stats?.porFuente ?? []} />
 
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-sm">Explorar vacantes</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                Explorar vacantes
+                {company ? (
+                  <button
+                    aria-label={`Quitar filtro ${company}`}
+                    className="glass rounded-md px-2 py-0.5 text-xs font-normal"
+                    onClick={() => setCompany("")}
+                    type="button"
+                  >
+                    {company} ✕
+                  </button>
+                ) : null}
+              </CardTitle>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   className="w-full sm:w-64"
@@ -574,7 +651,7 @@ export default function App() {
       </main>
 
       <footer className="py-4 text-center text-xs text-muted-foreground">
-        HireSignal · los datos se actualizan cada lunes
+        HireSignal · señales de contratación de empresas tech · se actualiza cada lunes
       </footer>
     </div>
   );
