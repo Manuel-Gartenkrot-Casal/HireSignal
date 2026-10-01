@@ -46,7 +46,7 @@ class MeliSpider:
                     job = Job(
                         company=company_name,
                         title=item["name"],
-                        url=item.get("positionUrl") or f"{MELI_BASE}/careers/job/{item['id']}",
+                        url=MELI_BASE + (item.get("positionUrl") or f"/careers/job/{item['id']}"),
                         source="meli",
                         ats="meli",
                         location=", ".join(item.get("locations") or []) or "",

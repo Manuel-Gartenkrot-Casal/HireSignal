@@ -15,7 +15,7 @@ ROLES = {
     "data": [
         "data", "analytics", "analista", "sql", "etl", "big data", "machine learning", "ml ",
         "ai ", "artificial intelligence", "dato", "científico de datos", "cientista",
-        "data science", "inteligencia artificial",
+        "data science", "inteligencia artificial", "business intelligence", "bi",
     ],
     "devops": [
         "devops", "sre", "site reliability", "cloud", "aws", "azure", "gcp", "kubernetes",
@@ -45,6 +45,7 @@ ROLES = {
     ],
     "sales": [
         "sales", "ventas", "bdr", "account executive", "comercial", "sdr", "business development",
+        "account manager", "client partner", "partnerships", "vendas", "vendedor",
     ],
     "marketing": [
         "marketing", "growth", "seo", "content", "comunicación", "copywriter", "comunicaciones",
@@ -52,8 +53,17 @@ ROLES = {
     ],
     "finance": [
         "finance", "finanzas", "accountant", "controller", "contador", "financial", "monetización",
+        "treasury", "tax", "credit", "underwriter", "risk", "riesgo", "fraud", "fraude", "accounting",
     ],
-    "support": ["support", "soporte", "customer success", "desk", "atención al cliente"],
+    "support": ["support", "soporte", "customer success", "desk", "atención al cliente", "customer service", "atendimento"],
+    "operations": [
+        "operations", "operaciones", "operações", "logística", "logistics", "supply chain", "procurement",
+        "supervisor", "supervisión", "supervisão", "mantenimiento", "manutenção", "transporte",
+        "warehouse", "almacén", "última milla", "last mile",
+    ],
+    "legal": [
+        "legal", "counsel", "compliance", "attorney", "paralegal", "abogado", "jurídico", "privacy", "regulatory",
+    ],
     "leadership": [
         "head", "lead ", "leader", "director", "vp ", "c-level", "cto", "coo", "ceo",
         "chief", "founder", "co-founder", "gerente",
@@ -160,6 +170,9 @@ def clasificar(title: str, description: str = "") -> dict:
     """
     texto = _normalizar(title)
     roles = [r for r, kws in ROLES.items() if _match(texto, kws)]
+    es_eng = any(_kw(g) in texto for g in GENERIC_ENG)
+    # "Payments Compliance Engineer" es ingeniería, no legal/operaciones.
+    roles = [r for r in roles if not (es_eng and r in ("legal", "operations"))]
 
     # Seniority sobre el título sin puntuación: "Manager II, Search" debe ver " ii ".
     sen = _normalizar(re.sub(r"[^\w]+", " ", title)).replace(" mid market ", " ")
@@ -183,7 +196,7 @@ def clasificar(title: str, description: str = "") -> dict:
     # Último recurso: ingeniería genérica (solo si nada matcheó, para no
     # pisar categorías específicas).
     if not roles:
-        if any(_kw(g) in texto for g in GENERIC_ENG):
+        if es_eng:
             roles = ["backend"]
         else:
             roles = ["other"]

@@ -347,7 +347,7 @@ const ROLE_LABEL: Record<string, string> = {
   devops: "DevOps / Cloud", qa: "QA", mobile: "Mobile", security: "Seguridad",
   product: "Producto", engineering: "Ingeniería (management)", design: "Diseño",
   hr: "Recursos humanos", sales: "Ventas", marketing: "Marketing", finance: "Finanzas",
-  support: "Soporte", leadership: "Liderazgo", other: "Otros",
+  support: "Soporte", operations: "Operaciones y logística", legal: "Legal y compliance", leadership: "Liderazgo", other: "Otros",
 };
 
 function useDebounced<T>(value: T, ms = 300): T {

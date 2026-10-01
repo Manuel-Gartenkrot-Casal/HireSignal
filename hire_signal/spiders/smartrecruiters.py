@@ -1,11 +1,27 @@
 from typing import Optional
 
+from ..models import Job
 from .base import _coerce_fecha, _get_json
 
-from ..models import Job
+SR_API = "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100&offset={offset}"
+SR_JOB = "https://jobs.smartrecruiters.com/{company}/{id}"
 
-SR_API = "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100"
-SR_JOB = "https://jobs.smartrecruiters.com/{slug}/{id}"
+# Solo los niveles inequívocos; "mid_senior_level" no distingue mid de senior,
+# ahí manda el clasificador por título.
+EXPERIENCE_TO_SENIORITY = {
+    "internship": "junior",
+    "entry_level": "junior",
+    "director": "lead",
+    "executive": "lead",
+}
+
+
+def _ubicacion(loc) -> str:
+    if isinstance(loc, str):
+        return loc
+    if not isinstance(loc, dict):
+        return ""
+    return ", ".join(p for p in (loc.get("city"), (loc.get("country") or "").upper()) if p)
 
 
 class SmartRecruitersSpider:
@@ -17,30 +33,30 @@ class SmartRecruitersSpider:
             if company.get("ats") != "smartrecruiters":
                 continue
             slug = company["slug"]
-            try:
-                data = _get_json(SR_API.format(slug=slug))
-            except Exception:
-                continue
-            if not data or not isinstance(data, dict):
-                continue
-
-            for item in data.get("content", []):
-                if limit and len(jobs) >= limit:
+            offset = 0
+            while not (limit and len(jobs) >= limit):
+                data = _get_json(SR_API.format(slug=slug, offset=offset))
+                if not isinstance(data, dict) or not data.get("content"):
                     break
-                if not item.get("name"):
-                    continue
-                job = Job(
-                    company=company["name"],
-                    title=item["name"],
-                    url=item.get("ref") or SR_JOB.format(slug=slug, id=item.get("id", "")),
-                    source="smartrecruiters",
-                    ats="smartrecruiters",
-                    location=item.get("location", "") if isinstance(item.get("location"), str) else (
-                        ", ".join(filter(None, item.get("location", {}).get("city", []) or [])) or ""
-                    ),
-                    posted_date=_coerce_fecha(item.get("releasedDate")),
-                    description=item.get("jobDescription", ""),
-                    raw=item,
-                )
-                jobs.append(job)
+                for item in data["content"]:
+                    if not item.get("name"):
+                        continue
+                    ident = (item.get("company") or {}).get("identifier") or slug
+                    nivel = (item.get("experienceLevel") or {}).get("id")
+                    jobs.append(
+                        Job(
+                            company=company["name"],
+                            title=item["name"],
+                            url=SR_JOB.format(company=ident, id=item.get("id", "")),
+                            source="smartrecruiters",
+                            ats="smartrecruiters",
+                            seniority=EXPERIENCE_TO_SENIORITY.get(nivel, ""),
+                            location=_ubicacion(item.get("location")),
+                            posted_date=_coerce_fecha(item.get("releasedDate")),
+                            raw=item,
+                        )
+                    )
+                offset += len(data["content"])
+                if offset >= data.get("totalFound", 0):
+                    break
         return jobs

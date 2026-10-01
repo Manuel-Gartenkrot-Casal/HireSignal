@@ -18,3 +18,15 @@ def test_anios_en_descripcion_html_escapado():
     assert clasificar("Software Engineer", d)["seniority"] == "senior"
     d = _texto("<li>1+ years building APIs</li>")
     assert clasificar("Software Engineer", d)["seniority"] == "junior"
+
+
+def test_roles_no_tecnicos():
+    assert clasificar("Procurement Specialist")["role_category"] == "operations"
+    assert clasificar("Senior Counsel, Employment")["role_category"] == "legal"
+    assert clasificar("Credit Risk Analyst")["role_category"] == "finance"
+    assert clasificar("Sr. Client Partner, Pharma")["role_category"] == "sales"
+
+
+def test_ingenieria_no_cae_en_legal_ni_operaciones():
+    assert clasificar("Staff Software Engineer, Payments Compliance")["role_category"] == "backend"
+    assert clasificar("Commercial Customer Success Manager")["role_category"] == "support"
