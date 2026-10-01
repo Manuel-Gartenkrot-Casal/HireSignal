@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
+from pymongo.errors import OperationFailure
 
 from .models import Job
 
@@ -19,7 +20,13 @@ col_jobs = db["jobs"]
 def crear_indices():
     col_jobs.create_index("dedup_key", unique=True, name="uq_dedup")
     for campo in ("source", "sources", "seniority", "role_category", "posted_date", "active"):
-        col_jobs.create_index(campo, name=f"idx_{campo}")
+        try:
+            col_jobs.create_index(campo, name=f"idx_{campo}")
+        except OperationFailure as e:
+            # 85 = ya existe el mismo índice con otro nombre (bases creadas
+            # antes del renombre idx_role -> idx_role_category). Sirve igual.
+            if e.code != 85:
+                raise
 
 
 def _doc(job: Job) -> dict:
