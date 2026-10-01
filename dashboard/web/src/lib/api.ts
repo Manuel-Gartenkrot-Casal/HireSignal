@@ -28,6 +28,7 @@ export interface Stats {
   porRol: Bucket[];
   porFuente: Bucket[];
   recientes: { _id: string; n: number }[];
+  actualizado: string | null;
 }
 
 export interface JobsParams {
@@ -35,6 +36,7 @@ export interface JobsParams {
   seniority?: string;
   source?: string;
   q?: string;
+  days?: number;
   limit?: number;
 }
 
@@ -55,6 +57,7 @@ export function fetchJobs(params: JobsParams): Promise<Job[]> {
     sp.set("seniority", params.seniority);
   if (params.source && params.source !== "all") sp.set("source", params.source);
   if (params.q) sp.set("q", params.q);
+  if (params.days) sp.set("days", String(params.days));
   sp.set("limit", String(params.limit ?? 100));
   return getJSON<Job[]>(`/api/jobs?${sp.toString()}`);
 }

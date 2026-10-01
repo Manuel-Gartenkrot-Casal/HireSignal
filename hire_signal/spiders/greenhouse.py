@@ -36,7 +36,7 @@ class GreenhouseSpider:
                     source="greenhouse",
                     ats="greenhouse",
                     location=item.get("location", {}).get("name", "") if isinstance(item.get("location"), dict) else item.get("location", ""),
-                    posted_date=_coerce_fecha(item.get("updated_at") or item.get("first_published_at")),
+                    posted_date=_coerce_fecha(item.get("first_published_at") or item.get("updated_at")),
                     description=_texto(item.get("content")),
                     raw=item,
                 )

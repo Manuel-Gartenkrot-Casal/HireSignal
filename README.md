@@ -148,3 +148,13 @@ El workflow `.github/workflows/scrape.yml` corre:
 
 Ejecuta `hire_signal.scheduler.run_semanal()`, que scrapea todas las fuentes, hace upsert
 por `dedup_key`, marca inactivos lo que desaparece y (si hay `GOOGLE_SHEET_ID`) exporta a Sheets.
+
+## Tests y CI
+
+```bash
+pip install pytest ruff
+ruff check . --exclude dashboard
+PYTHONPATH=. python -m pytest -q tests
+```
+
+GitHub Actions (`ci.yml`) corre lo mismo más `tsc` y el build del dashboard en cada PR.

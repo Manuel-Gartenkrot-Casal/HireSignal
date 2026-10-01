@@ -21,6 +21,11 @@ export async function conectarMongo(uri, dbName) {
 export const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/hiresignal';
 export const MONGO_DB = process.env.MONGO_DB || 'hiresignal';
 
+function fallar(res, err) {
+  console.error(err);
+  res.status(500).json({ error: 'Error interno' });
+}
+
 export default function createApp() {
 
   const app = express();
@@ -34,13 +39,16 @@ export default function createApp() {
   // ── GET /api/jobs ──────────────────────────────────────────────────────────
   app.get('/api/jobs', async (req, res) => {
     try {
-      const { role, seniority, source, q, limit = 200 } = req.query;
+      const { limit = 200 } = req.query;
+      // String(): evita inyección de operadores (?source[$ne]=x llega como objeto).
+      const [role, seniority, source, q, days] = ['role', 'seniority', 'source', 'q', 'days'].map((k) => String(req.query[k] ?? ''));
       const db = await getDB();
       const filtro = { active: true };
       if (role) filtro.role_category = role;
-      if (seniority && seniority !== 'unknown') filtro.seniority = seniority;
+      if (seniority) filtro.seniority = seniority;
       if (source) filtro.sources = source;
-      if (q) filtro.title = { $regex: String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+      if (q) filtro.title = { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+      if (Number(days) > 0) filtro.posted_date = { $gte: new Date(Date.now() - Number(days) * 864e5).toISOString() };
 
       const jobs = await db.collection('jobs')
         .find(filtro, { projection: { raw: 0 } })
@@ -50,7 +58,7 @@ export default function createApp() {
 
       res.json(jobs);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      fallar(res, err);
     }
   });
 
@@ -80,14 +88,15 @@ export default function createApp() {
         col.aggregate([
           { $match: { active: true, posted_date: { $ne: null } } },
           { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: { $dateFromString: { dateString: '$posted_date' } } } }, n: { $sum: 1 } } },
-          { $sort: { _id: 1 } },
+          { $sort: { _id: -1 } },
           { $limit: 30 },
         ]).toArray(),
       ]);
 
-      res.json({ total, porSeniority, porRol, porFuente, recientes });
+      const ultimo = await col.find({ active: true }, { projection: { last_seen: 1 } }).sort({ last_seen: -1 }).limit(1).toArray();
+      res.json({ total, porSeniority, porRol, porFuente, recientes: recientes.reverse(), actualizado: ultimo[0]?.last_seen ?? null });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      fallar(res, err);
     }
   });
 
@@ -97,7 +106,8 @@ export default function createApp() {
       await getDB();
       res.json({ ok: true, db: true });
     } catch (err) {
-      res.status(500).json({ ok: false, db: false, error: err.message });
+      console.error(err);
+      res.status(500).json({ ok: false, db: false });
     }
   });
 

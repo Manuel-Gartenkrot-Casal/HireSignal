@@ -254,11 +254,13 @@ function PieChartCard({ data }: { data: Bucket[] }) {
   );
 }
 
-function JobsTable({ jobs, loading }: { jobs: Job[]; loading: boolean }) {
+function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; error: boolean }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Vacantes activas</CardTitle>
+        <CardTitle className="text-sm">
+          Vacantes activas{!loading && !error ? ` (${jobs.length}${jobs.length >= 100 ? "+" : ""})` : ""}
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -280,6 +282,16 @@ function JobsTable({ jobs, loading }: { jobs: Job[]; loading: boolean }) {
                     </TableCell>
                   </TableRow>
                 ))
+              : error || jobs.length === 0
+              ? [
+                  <TableRow key="vacio">
+                    <TableCell className="py-10 text-center text-muted-foreground" colSpan={5}>
+                      {error
+                        ? "No pudimos cargar las vacantes. Reintentá en unos minutos."
+                        : "Ninguna vacante coincide con esos filtros."}
+                    </TableCell>
+                  </TableRow>,
+                ]
               : jobs.map((j) => (
                   <TableRow key={j._id}>
                     <TableCell className="max-w-[280px]">
@@ -305,7 +317,7 @@ function JobsTable({ jobs, loading }: { jobs: Job[]; loading: boolean }) {
                         )}
                         variant="outline"
                       >
-                        {j.seniority}
+                        {SENIORITY_LABEL[j.seniority] ?? j.seniority}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground sm:table-cell">
@@ -323,32 +335,84 @@ function JobsTable({ jobs, loading }: { jobs: Job[]; loading: boolean }) {
   );
 }
 
+const SENIORITY_LABEL: Record<string, string> = {
+  junior: "Junior",
+  mid: "Semi senior",
+  senior: "Senior",
+  lead: "Lead / Gerencia",
+  unknown: "Sin definir",
+};
+const ROLE_LABEL: Record<string, string> = {
+  backend: "Backend", frontend: "Frontend", fullstack: "Fullstack", data: "Datos",
+  devops: "DevOps / Cloud", qa: "QA", mobile: "Mobile", security: "Seguridad",
+  product: "Producto", engineering: "Ingeniería (management)", design: "Diseño",
+  hr: "Recursos humanos", sales: "Ventas", marketing: "Marketing", finance: "Finanzas",
+  support: "Soporte", leadership: "Liderazgo", other: "Otros",
+};
+
+function useDebounced<T>(value: T, ms = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
+  return (
+    <button
+      aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      className="glass h-9 rounded-md px-3 text-sm"
+      onClick={() => setDark((d) => !d)}
+      type="button"
+    >
+      {dark ? "Claro" : "Oscuro"}
+    </button>
+  );
+}
+
 export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
   const [seniority, setSeniority] = useState("all");
   const [role, setRole] = useState("all");
+  const [source, setSource] = useState("all");
+  const [soloNuevas, setSoloNuevas] = useState(false);
+  const qDebounced = useDebounced(q);
 
   useEffect(() => {
     fetchStats().catch(() => null).then(setStats);
   }, []);
 
   useEffect(() => {
+    // `vigente` descarta respuestas viejas si los filtros cambian en vuelo.
+    let vigente = true;
     setLoading(true);
-    fetchJobs({ q: q || undefined, seniority, role })
-      .then(setJobs)
-      .catch(() => setJobs([]))
-      .finally(() => setLoading(false));
-  }, [q, seniority, role]);
+    setError(false);
+    fetchJobs({ q: qDebounced || undefined, seniority, role, source, days: soloNuevas ? 7 : undefined })
+      .then((j) => vigente && setJobs(j))
+      .catch(() => vigente && (setJobs([]), setError(true)))
+      .finally(() => vigente && setLoading(false));
+    return () => {
+      vigente = false;
+    };
+  }, [qDebounced, seniority, role, source, soloNuevas]);
 
   const seniorityOptions = useMemo(
     () => [
       { value: "all", label: "Todas" },
       ...(stats?.porSeniority ?? [])
-        .map((b) => ({ value: b._id, label: b._id }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
+        .map((b) => ({ value: b._id, label: SENIORITY_LABEL[b._id] ?? b._id })),
     ],
     [stats]
   );
@@ -358,7 +422,7 @@ export default function App() {
       { value: "all", label: "Todos" },
       ...(stats?.porRol ?? []).map((b) => ({
         value: b._id,
-        label: b._id,
+        label: ROLE_LABEL[b._id] ?? b._id,
       })),
     ],
     [stats]
@@ -373,13 +437,12 @@ export default function App() {
     [stats]
   );
 
-  const ultimaSemana = useMemo(
-    () =>
-      (stats?.recientes ?? [])
-        .slice(-7)
-        .reduce((acc, d) => acc + d.n, 0),
-    [stats]
-  );
+  const ultimaSemana = useMemo(() => {
+    const desde = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    return (stats?.recientes ?? [])
+      .filter((d) => d._id >= desde)
+      .reduce((acc, d) => acc + d.n, 0);
+  }, [stats]);
 
   return (
     <div className="min-h-dvh text-foreground">
@@ -390,11 +453,15 @@ export default function App() {
               className="text-2xl font-bold tracking-tight"
               text="HireSignal"
             />
-            <Badge variant="secondary">MVP</Badge>
           </div>
-          <p className="hidden text-sm text-muted-foreground sm:block">
-            Feed de vacantes · {new Date().toLocaleDateString("es-AR")}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="hidden text-sm text-muted-foreground sm:block">
+              {stats?.actualizado
+                ? `Actualizado el ${new Date(stats.actualizado).toLocaleDateString("es-AR")}`
+                : "Feed de vacantes"}
+            </p>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -441,11 +508,13 @@ export default function App() {
                 <Input
                   className="w-full sm:w-64"
                   onChange={(e) => setQ(e.target.value)}
+                  aria-label="Buscar cargo"
                   placeholder="Buscar cargo…"
                   type="search"
                   value={q}
                 />
                 <select
+                  aria-label="Filtrar por seniority"
                   className="glass h-9 rounded-md px-3 text-sm"
                   onChange={(e) => setSeniority(e.target.value)}
                   value={seniority}
@@ -457,6 +526,7 @@ export default function App() {
                   ))}
                 </select>
                 <select
+                  aria-label="Filtrar por rol"
                   className="glass h-9 rounded-md px-3 text-sm"
                   onChange={(e) => setRole(e.target.value)}
                   value={role}
@@ -467,16 +537,37 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+                <select
+                  aria-label="Filtrar por fuente"
+                  className="glass h-9 rounded-md px-3 text-sm capitalize"
+                  onChange={(e) => setSource(e.target.value)}
+                  value={source}
+                >
+                  <option value="all">Fuente: Todas</option>
+                  {(stats?.porFuente ?? []).map((b) => (
+                    <option key={b._id} value={b._id}>
+                      Fuente: {b._id}
+                    </option>
+                  ))}
+                </select>
+                <label className="glass flex h-9 items-center gap-2 rounded-md px-3 text-sm">
+                  <input
+                    checked={soloNuevas}
+                    onChange={(e) => setSoloNuevas(e.target.checked)}
+                    type="checkbox"
+                  />
+                  Últimos 7 días
+                </label>
               </div>
             </div>
           </CardHeader>
         </Card>
 
-        <JobsTable jobs={jobs} loading={loading} />
+        <JobsTable error={error} jobs={jobs} loading={loading} />
       </main>
 
       <footer className="py-4 text-center text-xs text-muted-foreground">
-        HireSignal · scraping pipeline + MongoDB + dashboard
+        HireSignal · los datos se actualizan cada lunes
       </footer>
     </div>
   );

@@ -5,5 +5,3 @@ python-dotenv
 apscheduler
 gspread
 google-auth
-beautifulsoup4
-lxml
