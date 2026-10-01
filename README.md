@@ -82,14 +82,6 @@ MONGO_URI=mongodb://localhost:27017/hiresignal
 MONGO_DB=hiresignal
 ```
 
-## API
-
-| Endpoint | Descripción |
-| --- | --- |
-| `GET /api/jobs?role=&seniority=&source=&q=&limit=` | Vacantes activas filtradas |
-| `GET /api/stats` | total, por seniority/rol/fuente, últimos 30 días |
-| `GET /api/health` | estado de la conexión a MongoDB |
-
 ## 3. Deploy híbrido (Vercel + MongoDB Atlas + GitHub Actions)
 
 Arquitectura sin servidor propio: el dashboard (frontend + API) corre en Vercel y los
