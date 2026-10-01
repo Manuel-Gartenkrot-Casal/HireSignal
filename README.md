@@ -158,3 +158,20 @@ PYTHONPATH=. python -m pytest -q tests
 ```
 
 GitHub Actions (`ci.yml`) corre lo mismo más `tsc` y el build del dashboard en cada PR.
+
+## API del dashboard
+
+| Endpoint | Parámetros | Devuelve |
+|---|---|---|
+| `GET /api/jobs` | `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000) | vacantes activas, más recientes primero |
+| `GET /api/stats` | - | totales por seniority, rol y fuente, publicaciones de los últimos 30 días y `actualizado` (último `last_seen`) |
+| `GET /api/health` | - | `{ ok, db }` |
+
+Todos los parámetros se tratan como texto (sin operadores de Mongo) y los errores no exponen detalles internos.
+
+## Refresco semanal
+
+Cada lunes el workflow `scrape.yml` vuelve a scrapear todo y hace upsert por `dedup_key` (empresa + título).
+Los puestos que dejan de aparecer se marcan inactivos solo para las empresas que respondieron en esa corrida, y
+si una fuente cerraría más de la mitad de sus puestos se omite el cierre (probable respuesta incompleta).
+El run termina en rojo si ninguna fuente devolvió jobs o si una fuente configurada vino vacía.

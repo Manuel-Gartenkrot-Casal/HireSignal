@@ -354,6 +354,9 @@ const ROLE_LABEL: Record<string, string> = {
   support: "Soporte", operations: "Operaciones y logística", legal: "Legal y compliance", leadership: "Liderazgo", other: "Otros",
 };
 
+/** Días enteros desde una fecha ISO (el refresco es semanal: >9 días = algo falló). */
+const diasDesde = (iso: string) => Math.floor((Date.now() - Date.parse(iso)) / 864e5);
+
 function useDebounced<T>(value: T, ms = 300): T {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -461,7 +464,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <p className="hidden text-sm text-muted-foreground sm:block">
               {stats?.actualizado
-                ? `Actualizado el ${new Date(stats.actualizado).toLocaleDateString("es-AR")}`
+                ? `${diasDesde(stats.actualizado) > 9 ? "Datos desactualizados: " : ""}actualizado el ${new Date(stats.actualizado).toLocaleDateString("es-AR")}`
                 : "Feed de vacantes"}
             </p>
             <ThemeToggle />
