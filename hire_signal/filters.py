@@ -74,14 +74,17 @@ SENIORITY = {
         " i ", " grado i", "nivel i", "júnior.",
     ],
     "mid": [
-        "mid", "semisenior", "semi senior", "semi-senior", "intermediate",
+        "mid", "semisenior", "semi senior", "semi-senior", "intermediate", "pleno", "ssr",
         " ii ", "nivel ii", "grado ii",
     ],
     "senior": [
-        "senior", "sr", "sr.", "advanced", "staff", "expert", "sénior",
+        "senior", "sr", "sr.", "sênior", "advanced", "staff", "expert", "sénior",
         " iii ", "nivel iii", "grado iii",
     ],
-    "lead": ["lead", "head", "principal", "tech lead", "líder", "lider", "lead "],
+    "lead": [
+        "lead", "head", "principal", "tech lead", "líder", "lider", "lead ", "director",
+        "gerente", "gerencia", "gerência", "jefe", "coordinador", "coordenador",
+    ],
 }
 
 TECH_STACK = [
@@ -158,9 +161,11 @@ def clasificar(title: str, description: str = "") -> dict:
     texto = _normalizar(title)
     roles = [r for r, kws in ROLES.items() if _match(texto, kws)]
 
+    # Seniority sobre el título sin puntuación: "Manager II, Search" debe ver " ii ".
+    sen = _normalizar(re.sub(r"[^\w]+", " ", title)).replace(" mid market ", " ")
     seniority = "unknown"
     for nivel, kws in SENIORITY.items():
-        if _match(texto, kws):
+        if _match(sen, kws):
             seniority = nivel
             break
 

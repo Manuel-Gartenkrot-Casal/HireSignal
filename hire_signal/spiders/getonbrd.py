@@ -18,7 +18,6 @@ class GetonbrdSpider:
         self._company_cache: dict[int, str] = {}
 
     def run(self, companies: list[dict], limit: Optional[int] = None) -> list[Job]:
-        import requests
 
         jobs = []
         company_ids = [c.get("getonbrd_id") for c in companies if c.get("getonbrd_id")]

@@ -133,7 +133,7 @@ function AreaChartCard({ data }: { data: { _id: string; n: number }[] }) {
           />
           <ChartTooltip
             content={({ point }: TooltipPoint) => (
-              <div className="rounded-lg border bg-background px-3 py-1.5 text-xs shadow-md">
+              <div className="glass rounded-lg px-3 py-1.5 text-xs">
                 <span className="font-medium">
                   {new Date(point.date as string).toLocaleDateString("es-AR", {
                     day: "2-digit",
@@ -178,7 +178,7 @@ function BarChartCard({ data }: { data: Bucket[] }) {
             <Bar dataKey="count" />
             <ChartTooltip
               content={({ point }: TooltipPoint) => (
-                <div className="rounded-lg border bg-background px-3 py-1.5 text-xs shadow-md">
+                <div className="glass rounded-lg px-3 py-1.5 text-xs">
                   <span className="font-medium capitalize">
                     {point.name as string}
                   </span>
@@ -382,8 +382,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b">
+    <div className="min-h-dvh text-foreground">
+      <header className="glass sticky top-0 z-10 rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-3">
             <ShimmeringText
@@ -446,7 +446,7 @@ export default function App() {
                   value={q}
                 />
                 <select
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="glass h-9 rounded-md px-3 text-sm"
                   onChange={(e) => setSeniority(e.target.value)}
                   value={seniority}
                 >
@@ -457,7 +457,7 @@ export default function App() {
                   ))}
                 </select>
                 <select
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="glass h-9 rounded-md px-3 text-sm"
                   onChange={(e) => setRole(e.target.value)}
                   value={role}
                 >
@@ -475,7 +475,7 @@ export default function App() {
         <JobsTable jobs={jobs} loading={loading} />
       </main>
 
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+      <footer className="py-4 text-center text-xs text-muted-foreground">
         HireSignal · scraping pipeline + MongoDB + dashboard
       </footer>
     </div>

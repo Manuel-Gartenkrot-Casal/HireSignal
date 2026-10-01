@@ -146,5 +146,5 @@ El workflow `.github/workflows/scrape.yml` corre:
 - al hacer **push** en `hire_signal/**` o `requirements.txt`;
 - manualmente desde la pestaña *Actions* → *Run workflow*.
 
-Ejecuta `python scripts/github_action.py`, que scrapea todas las fuentes, hace upsert
+Ejecuta `hire_signal.scheduler.run_semanal()`, que scrapea todas las fuentes, hace upsert
 por `dedup_key`, marca inactivos lo que desaparece y (si hay `GOOGLE_SHEET_ID`) exporta a Sheets.

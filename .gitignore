@@ -24,3 +24,5 @@ data/*.csv
 # opencode tooling
 .agents/
 skills-lock.json
+# graphify
+graphify-out/

@@ -9,8 +9,11 @@ on:
     paths:
       - "hire_signal/**"
       - "requirements.txt"
-      - "scripts/github_action.py"
       - ".github/workflows/scrape.yml"
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
 
 jobs:
   scrape:
@@ -46,4 +49,4 @@ jobs:
       - name: Correr scraping y guardar en MongoDB
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: python scripts/github_action.py
+        run: python -c "from hire_signal.scheduler import run_semanal; run_semanal()"

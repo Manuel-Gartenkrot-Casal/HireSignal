@@ -1,10 +1,10 @@
 from typing import Optional
 
-from .base import HEADERS, TIMEOUT, _coerce_fecha, _get_json
+from .base import _coerce_fecha, _get_json, _texto
 
 from ..models import Job
 
-GREENHOUSE_BASE = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
+GREENHOUSE_BASE = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
 
 
 class GreenhouseSpider:
@@ -37,7 +37,7 @@ class GreenhouseSpider:
                     ats="greenhouse",
                     location=item.get("location", {}).get("name", "") if isinstance(item.get("location"), dict) else item.get("location", ""),
                     posted_date=_coerce_fecha(item.get("updated_at") or item.get("first_published_at")),
-                    description=item.get("content", ""),
+                    description=_texto(item.get("content")),
                     raw=item,
                 )
                 jobs.append(job)

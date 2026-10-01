@@ -18,9 +18,10 @@ export async function conectarMongo(uri, dbName) {
   return cache;
 }
 
+export const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/hiresignal';
+export const MONGO_DB = process.env.MONGO_DB || 'hiresignal';
+
 export default function createApp() {
-  const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/hiresignal';
-  const MONGO_DB = process.env.MONGO_DB || 'hiresignal';
 
   const app = express();
   app.use(express.json());

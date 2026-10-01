@@ -1,11 +1,13 @@
 import json
-import os
 from pathlib import Path
 from typing import Optional
 
 from .filters import aplicar_a_job
 from .models import Job
 from .spiders import ALL_SPIDERS
+
+
+COMPANIES_PATH = "hire_signal/config/companies.json"
 
 
 def _cargar_companies(path: str | Path) -> list[dict]:
@@ -16,14 +18,8 @@ def _cargar_companies(path: str | Path) -> list[dict]:
     return data.get("companies", [])
 
 
-def _coerce_job(job: Job) -> Job:
-    if isinstance(job, Job):
-        return job
-    return Job(**job)
-
-
 def run(
-    companies_path: str | Path = "hire_signal/config/companies.json",
+    companies_path: str | Path = COMPANIES_PATH,
     sources: Optional[list[str]] = None,
     limit: Optional[int] = None,
 ) -> list[Job]:

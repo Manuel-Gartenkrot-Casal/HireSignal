@@ -1,12 +1,10 @@
 import datetime
-import json
-import os
-import sys
-from typing import Optional, Protocol
+import html
+import re
+import time
+from typing import Optional
 
 import requests
-
-from ..models import Job
 
 HEADERS = {
     "User-Agent": (
@@ -36,45 +34,23 @@ def _coerce_fecha(val) -> Optional[datetime.datetime]:
     return None
 
 
+def _texto(raw: str) -> str:
+    """HTML (posiblemente escapado) -> texto plano, para que los regex de filters funcionen."""
+    return re.sub(r"<[^>]+>", " ", html.unescape(html.unescape(raw or "")))
+
+
 def _get_json(url: str) -> Optional[object]:
-    try:
-        r = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-        r.raise_for_status()
-        return r.json()
-    except Exception:
-        return None
-
-
-def _url_is_ats(json_url: str) -> bool:
-    return any(
-        d in json_url
-        for d in ["boards-api.greenhouse.io", "lever.co", "ashbyhq.com", "api.smartrecruiters.com"]
-    )
-
-
-class BaseSpider(Protocol):
-    name: str
-
-    def run(self, companies: list[dict], limit: Optional[int] = None) -> list[Job]:
-        ...
-
-
-def to_dict(job: Job) -> dict:
-    return dataclasses_as_dict(job)
-
-
-def dataclasses_as_dict(job: Job) -> dict:
-    return {
-        "company": job.company,
-        "title": job.title,
-        "url": job.url,
-        "source": job.source,
-        "ats": job.ats,
-        "role_category": job.role_category,
-        "seniority": job.seniority,
-        "tech": job.tech,
-        "location": job.location,
-        "posted_date": job.posted_date.isoformat() if job.posted_date else None,
-        "first_seen": job.first_seen.isoformat(),
-        "dedup_key": job.dedup_key,
-    }
+    """GET con 3 intentos ante errores de red / 5xx / 429. 4xx (slug inválido) no reintenta."""
+    for intento in range(3):
+        try:
+            r = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
+            if r.status_code < 500 and r.status_code != 429:
+                r.raise_for_status()
+                return r.json()
+        except requests.HTTPError:
+            return None
+        except Exception:
+            pass
+        if intento < 2:
+            time.sleep(2**intento)
+    return None

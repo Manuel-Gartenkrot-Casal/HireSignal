@@ -1,8 +1,6 @@
-import datetime
-import os
 from typing import Optional
 
-from .base import HEADERS, TIMEOUT, _coerce_fecha, _get_json
+from .base import _coerce_fecha, _get_json, _texto
 
 from ..models import Job
 
@@ -39,7 +37,7 @@ class AshbySpider:
                     ats="ashby",
                     location=item.get("location", ""),
                     posted_date=_coerce_fecha(item.get("publishedAt")),
-                    description=item.get("descriptionHtml", ""),
+                    description=_texto(item.get("descriptionHtml")),
                     raw=item,
                 )
                 jobs.append(job)

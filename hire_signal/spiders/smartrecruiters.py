@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .base import HEADERS, TIMEOUT, _coerce_fecha, _get_json
+from .base import _coerce_fecha, _get_json
 
 from ..models import Job
 

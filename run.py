@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from hire_signal.db import crear_indices, guardar_jobs, marcar_inactivos
+from hire_signal.db import crear_indices, guardar_jobs
 from hire_signal.pipeline import run
 
 
