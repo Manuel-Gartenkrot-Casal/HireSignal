@@ -29,8 +29,10 @@ import {
 } from "@/components/charts";
 import { cn } from "@/lib/utils";
 import {
+  enviarLead,
   fetchCompanies,
   fetchJobs,
+  type CompaniesResponse,
   fetchStats,
   type Bucket,
   type CompanySignal,
@@ -226,33 +228,124 @@ function exportarCSV(empresas: CompanySignal[]) {
   URL.revokeObjectURL(a.href);
 }
 
+const PRECIO = "USD 49/mes";
+
+function Oferta({ total }: { total: number }) {
+  const [email, setEmail] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [estado, setEstado] = useState<"idle" | "enviando" | "ok" | string>("idle");
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    setEstado("enviando");
+    try {
+      await enviarLead(email, empresa);
+      setEstado("ok");
+    } catch (err) {
+      setEstado((err as Error).message);
+    }
+  }
+
+  return (
+    <Card id="prueba">
+      <CardHeader>
+        <CardTitle className="text-base">
+          Encontrá a tu próximo cliente antes que tu competencia
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Las empresas que abren muchos roles de backend o data esta semana necesitan
+          ingenieros ya. Con el acceso completo ves las {total} empresas, filtrás por área y
+          bajás la lista a tu CRM cada lunes.
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-6 md:grid-cols-2">
+        <ul className="space-y-2 text-sm">
+          <li>✓ Ranking completo de {total} empresas, actualizado cada lunes</li>
+          <li>✓ Vacantes nuevas por área: backend, data, DevOps, mobile, seguridad…</li>
+          <li>✓ Export CSV listo para HubSpot, Pipedrive o una planilla</li>
+          <li>✓ Link directo a cada vacante para personalizar el primer mensaje</li>
+          <li className="pt-2 font-medium">
+            {PRECIO} por equipo · 14 días gratis · sin tarjeta
+          </li>
+        </ul>
+        {estado === "ok" ? (
+          <p className="self-center text-sm" role="status">
+            ¡Listo! Te escribimos en menos de 24 h con tu acceso.
+          </p>
+        ) : (
+          <form className="flex flex-col gap-2" onSubmit={enviar}>
+            <label className="text-sm" htmlFor="lead-email">Email de trabajo</label>
+            <Input
+              autoComplete="email"
+              id="lead-email"
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              type="email"
+              value={email}
+            />
+            <label className="text-sm" htmlFor="lead-empresa">Empresa</label>
+            <Input
+              autoComplete="organization"
+              id="lead-empresa"
+              maxLength={120}
+              onChange={(e) => setEmpresa(e.target.value)}
+              value={empresa}
+            />
+            <button
+              className="mt-2 h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              disabled={estado === "enviando"}
+              type="submit"
+            >
+              {estado === "enviando" ? "Enviando…" : "Pedir 14 días gratis"}
+            </button>
+            {estado !== "idle" && estado !== "enviando" ? (
+              <p className="text-sm text-destructive" role="alert">{estado}</p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Usamos tu email solo para darte acceso. Nada de spam.
+            </p>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SignalsTable({
-  empresas,
+  datos,
   seleccionada,
   onSelect,
 }: {
-  empresas: CompanySignal[] | null;
+  datos: CompaniesResponse | null;
   seleccionada: string;
   onSelect: (empresa: string) => void;
 }) {
+  const empresas = datos?.empresas ?? null;
+  const ocultas = datos && !datos.completo ? datos.total - datos.empresas.length : 0;
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-sm">Señales de compra por empresa</CardTitle>
+            <CardTitle className="text-sm">Empresas que están contratando más rápido</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Empresas que más aceleraron su contratación esta semana. Clic para ver sus vacantes.
+              Vacantes nuevas en los últimos 7 días. Clic en una empresa para ver sus vacantes.
             </p>
           </div>
-          <button
-            className="glass h-9 shrink-0 rounded-md px-3 text-sm disabled:opacity-50"
-            disabled={!empresas?.length}
-            onClick={() => empresas && exportarCSV(empresas)}
-            type="button"
-          >
-            Exportar CSV
-          </button>
+          {datos?.completo ? (
+            <button
+              className="glass h-9 shrink-0 rounded-md px-3 text-sm disabled:opacity-50"
+              disabled={!empresas?.length}
+              onClick={() => empresas && exportarCSV(empresas)}
+              type="button"
+            >
+              Exportar CSV
+            </button>
+          ) : (
+            <a className="glass h-9 shrink-0 content-center rounded-md px-3 text-sm" href="#prueba">
+              Exportar CSV 🔒
+            </a>
+          )}
         </div>
       </CardHeader>
       <CardContent className="max-h-[480px] overflow-y-auto p-0">
@@ -308,6 +401,15 @@ function SignalsTable({
                     </TableCell>
                   </TableRow>
                 ))}
+            {ocultas > 0 ? (
+              <TableRow>
+                <TableCell className="py-6 text-center" colSpan={5}>
+                  <a className="font-medium hover:text-primary" href="#prueba">
+                    🔒 {ocultas} empresas más con el acceso completo, probalo 14 días gratis
+                  </a>
+                </TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
       </CardContent>
@@ -448,7 +550,7 @@ function ThemeToggle() {
 
 export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [empresas, setEmpresas] = useState<CompanySignal[] | null>(null);
+  const [companies, setCompanies] = useState<CompaniesResponse | null>(null);
   const [company, setCompany] = useState("");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -462,7 +564,9 @@ export default function App() {
 
   useEffect(() => {
     fetchStats().catch(() => null).then(setStats);
-    fetchCompanies().catch(() => []).then(setEmpresas);
+    fetchCompanies()
+      .catch(() => ({ completo: false, total: 0, acelerando: 0, empresas: [] }))
+      .then(setCompanies);
   }, []);
 
   useEffect(() => {
@@ -560,11 +664,15 @@ export default function App() {
             index={3}
             label="Empresas acelerando"
             sub="con vacantes nuevas en 7 días"
-            value={(empresas ?? []).filter((c) => c.nuevas > 0).length}
+            value={companies?.acelerando ?? 0}
           />
         </section>
 
-        <SignalsTable empresas={empresas} onSelect={setCompany} seleccionada={company} />
+        <SignalsTable datos={companies} onSelect={setCompany} seleccionada={company} />
+
+        {companies && !companies.completo && companies.total > 0 ? (
+          <Oferta total={companies.total} />
+        ) : null}
 
         <section className="grid gap-6 lg:grid-cols-2">
           <AreaChartCard data={stats?.recientes ?? []} />

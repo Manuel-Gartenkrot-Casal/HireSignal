@@ -5,7 +5,7 @@ import fs from 'fs';
 import express from 'express';
 import * as mongo from 'mongodb';
 
-import { armarFiltro, pipelineEmpresas } from './filtro.js';
+import { armarFiltro, pipelineEmpresas, validarLead } from './filtro.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,6 +23,15 @@ export async function conectarMongo(uri, dbName) {
 export const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/hiresignal';
 export const MONGO_DB = process.env.MONGO_DB || 'hiresignal';
 
+// Sin clave se ven las primeras GRATIS empresas del ranking; el resto es pago.
+const GRATIS = 10;
+
+/** Clave de cliente (header x-hs-key) activa en la colección `claves`. */
+async function tieneAcceso(req, db) {
+  const key = String(req.get('x-hs-key') ?? '').slice(0, 100);
+  return Boolean(key && (await db.collection('claves').findOne({ key, activa: true })));
+}
+
 function fallar(res, err) {
   console.error(err);
   res.status(500).json({ error: 'Error interno' });
@@ -31,7 +40,7 @@ function fallar(res, err) {
 export default function createApp() {
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '10kb' }));
 
   async function getDB() {
     const { db } = await conectarMongo(MONGO_URI, MONGO_DB);
@@ -61,7 +70,36 @@ export default function createApp() {
   app.get('/api/companies', async (req, res) => {
     try {
       const db = await getDB();
-      res.json(await db.collection('jobs').aggregate(pipelineEmpresas(req.query.days)).toArray());
+      const [todas, completo] = await Promise.all([
+        db.collection('jobs').aggregate(pipelineEmpresas(req.query.days)).toArray(),
+        tieneAcceso(req, db),
+      ]);
+      res.json({
+        completo,
+        total: todas.length,
+        acelerando: todas.filter((c) => c.nuevas > 0).length,
+        empresas: completo ? todas : todas.slice(0, GRATIS),
+      });
+    } catch (err) {
+      fallar(res, err);
+    }
+  });
+
+  // ── POST /api/leads ────────────────────────────────────────────────────────
+  // ponytail: sin rate limit; un bot puede llenar la colección. Agregar uno
+  // (o un captcha) si aparecen leads basura.
+  app.post('/api/leads', async (req, res) => {
+    const lead = validarLead(req.body);
+    if (!lead) return res.status(400).json({ error: 'Email inválido' });
+    try {
+      const db = await getDB();
+      const ahora = new Date().toISOString();
+      await db.collection('leads').updateOne(
+        { email: lead.email },
+        { $set: { empresa: lead.empresa, actualizado: ahora }, $setOnInsert: { creado: ahora } },
+        { upsert: true },
+      );
+      res.status(201).json({ ok: true });
     } catch (err) {
       fallar(res, err);
     }

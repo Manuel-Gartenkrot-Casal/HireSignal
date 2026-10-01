@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { armarFiltro, pipelineEmpresas } from '../src/filtro.js';
+import { armarFiltro, pipelineEmpresas, validarLead } from '../src/filtro.js';
 
 test('un objeto en la query no inyecta operadores', () => {
   const f = armarFiltro({ source: { $ne: 'x' }, role: { $gt: '' } });
@@ -35,4 +35,16 @@ test('pipelineEmpresas corta nuevas por first_seen', () => {
   assert.equal(corte(pipelineEmpresas('7', ahora)), '2026-01-03T00:00:00.000Z');
   assert.equal(corte(pipelineEmpresas('abc', ahora)), '2026-01-03T00:00:00.000Z');
   assert.equal(corte(pipelineEmpresas('30', ahora)), '2025-12-11T00:00:00.000Z');
+});
+
+test('validarLead acepta emails válidos y normaliza', () => {
+  assert.deepEqual(validarLead({ email: ' Ana@Agencia.com ', empresa: 'Agencia' }), {
+    email: 'ana@agencia.com',
+    empresa: 'Agencia',
+  });
+  assert.equal(validarLead({ email: 'x'.repeat(250) + '@a.co' }), null);
+  assert.equal(validarLead({ email: 'sin-arroba' }), null);
+  assert.equal(validarLead({ email: { $ne: '' } }), null);
+  assert.equal(validarLead(undefined), null);
+  assert.equal(validarLead({ email: 'a@b.co', empresa: 'y'.repeat(500) }).empresa.length, 120);
 });

@@ -49,8 +49,27 @@ export interface JobsParams {
   limit?: number;
 }
 
+/** Clave de cliente: llega una vez por ?key= y queda en el navegador. */
+function leerClave(): string {
+  try {
+    const url = new URL(location.href);
+    const deUrl = url.searchParams.get("key");
+    if (deUrl) {
+      localStorage.setItem("hs-key", deUrl);
+      url.searchParams.delete("key");
+      history.replaceState(null, "", url); // que no quede en capturas ni links compartidos
+      return deUrl;
+    }
+    return localStorage.getItem("hs-key") ?? "";
+  } catch {
+    return "";
+  }
+}
+
+const CLAVE = leerClave();
+
 async function getJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, CLAVE ? { headers: { "x-hs-key": CLAVE } } : undefined);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
 }
@@ -59,8 +78,24 @@ export function fetchStats(): Promise<Stats> {
   return getJSON<Stats>("/api/stats");
 }
 
-export function fetchCompanies(days = 7): Promise<CompanySignal[]> {
-  return getJSON<CompanySignal[]>(`/api/companies?days=${days}`);
+export interface CompaniesResponse {
+  completo: boolean;
+  total: number;
+  acelerando: number;
+  empresas: CompanySignal[];
+}
+
+export function fetchCompanies(days = 7): Promise<CompaniesResponse> {
+  return getJSON<CompaniesResponse>(`/api/companies?days=${days}`);
+}
+
+export async function enviarLead(email: string, empresa: string): Promise<void> {
+  const res = await fetch("/api/leads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, empresa }),
+  });
+  if (!res.ok) throw new Error(res.status === 400 ? "Revisá el email." : "No pudimos enviarlo, probá de nuevo.");
 }
 
 export function fetchJobs(params: JobsParams): Promise<Job[]> {

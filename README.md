@@ -1,9 +1,22 @@
 # HireSignal
 
-Señales de compra para equipos de ventas B2B: qué empresas tech están acelerando su
-contratación y en qué áreas (data, backend, seguridad…), a partir de sus vacantes públicas
+Señales de compra para software factories y agencias de staffing IT: qué empresas tech
+están acelerando su contratación y en qué áreas (data, backend, DevOps…), a partir de sus vacantes públicas
 (ATS Greenhouse / Lever / Ashby / SmartRecruiters / GetOnBrd). Normalización, dedupe,
 dashboard con ranking por empresa y export CSV para el CRM.
+
+## Vender (modelo concierge)
+
+- Sin clave, el dashboard muestra el top 10 del ranking y un formulario de prueba gratis
+  (`POST /api/leads` → colección `leads`).
+- Con clave (`?key=` una vez; queda en el navegador) se ven todas las empresas y el export CSV.
+- Altas y bajas a mano con un link de pago (Stripe o Mercado Pago):
+
+```bash
+python scripts/clave.py nueva cliente@agencia.com   # imprime la clave y el link
+python scripts/clave.py revocar cliente@agencia.com
+python scripts/clave.py listar
+```
 
 ## Arquitectura
 
@@ -158,8 +171,9 @@ GitHub Actions (`ci.yml`) corre lo mismo más `tsc` y el build del dashboard en 
 
 | Endpoint | Parámetros | Devuelve |
 |---|---|---|
-| `GET /api/companies` | `days` (default 7) | ranking por empresa: `activas`, `nuevas` (vistas por primera vez en `days`, sin contar la primera carga de la empresa), `senior` y top 3 `areas` (sin `other`); ordenado por `nuevas` |
+| `GET /api/companies` | `days` (default 7); header `x-hs-key` | `{ completo, total, acelerando, empresas }`; sin clave válida, solo las 10 primeras. Por empresa: `activas`, `nuevas` (vistas por primera vez en `days`, sin contar la primera carga de la empresa), `senior` y top 3 `areas` (sin `other`); ordenado por `nuevas` |
 | `GET /api/jobs` | `company` (exacto), `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000) | vacantes activas, más recientes primero |
+| `POST /api/leads` | JSON `{ email, empresa }` | 201, o 400 si el email no es válido |
 | `GET /api/stats` | - | totales por seniority, rol y fuente, publicaciones de los últimos 30 días y `actualizado` (último `last_seen`) |
 | `GET /api/health` | - | `{ ok, db }` |
 

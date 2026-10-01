@@ -19,13 +19,13 @@ export function armarFiltro(query, ahora = Date.now()) {
 export function pipelineEmpresas(days = 7, ahora = Date.now()) {
   const d = Number(days) > 0 ? Number(days) : 7;
   const desde = new Date(ahora - d * 864e5).toISOString();
-  // La primera carga de una empresa (su primer día en el sistema) no cuenta como
-  // nueva: si no, una empresa recién agregada parecería acelerar con todo su backlog.
+  // La primera carga de cada empresa en cada fuente (su primer día ahí) no cuenta
+  // como nueva: si no, sumar una empresa o un ATS parecería aceleración.
   const posteriorAlAlta = { $gt: [{ $toDate: '$first_seen' }, { $add: [{ $toDate: '$alta' }, 864e5] }] };
   const nueva = { $cond: [{ $and: [{ $gte: ['$first_seen', desde] }, posteriorAlAlta] }, 1, 0] };
   return [
     { $match: { active: true } },
-    { $setWindowFields: { partitionBy: '$company', output: { alta: { $min: '$first_seen' } } } },
+    { $setWindowFields: { partitionBy: { c: '$company', s: '$source' }, output: { alta: { $min: '$first_seen' } } } },
     {
       $group: {
         _id: { c: '$company', r: '$role_category' },
@@ -53,4 +53,12 @@ export function pipelineEmpresas(days = 7, ahora = Date.now()) {
     },
     { $sort: { nuevas: -1, activas: -1 } },
   ];
+}
+
+// Lead del formulario de prueba: null si el email no es válido. Todo a String
+// y con tope de largo, porque llega de un formulario público.
+export function validarLead(body) {
+  const email = String(body?.email ?? '').trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return { email, empresa: String(body?.empresa ?? '').trim().slice(0, 120) };
 }
