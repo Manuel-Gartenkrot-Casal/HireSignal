@@ -417,12 +417,12 @@ function SignalsTable({
   );
 }
 
-function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; error: boolean }) {
+function JobsTable({ jobs, loading, error, tope }: { jobs: Job[]; loading: boolean; error: boolean; tope: number }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">
-          Vacantes activas{!loading && !error ? ` (${jobs.length}${jobs.length >= 100 ? "+" : ""})` : ""}
+          Vacantes activas{!loading && !error ? ` (${jobs.length}${jobs.length >= tope ? "+" : ""})` : ""}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -755,7 +755,13 @@ export default function App() {
           </CardHeader>
         </Card>
 
-        <JobsTable error={error} jobs={jobs} loading={loading} />
+        <JobsTable error={error} jobs={jobs} loading={loading} tope={companies?.completo ? 100 : 25} />
+        {companies && !companies.completo ? (
+          <p className="text-center text-sm text-muted-foreground">
+            Mostramos una muestra de 25 vacantes.{" "}
+            <a className="underline" href="#prueba">Acceso completo, 14 días gratis</a>
+          </p>
+        ) : null}
       </main>
 
       <footer className="py-4 text-center text-xs text-muted-foreground">

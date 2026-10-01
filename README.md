@@ -172,8 +172,8 @@ GitHub Actions (`ci.yml`) corre lo mismo más `tsc` y el build del dashboard en 
 | Endpoint | Parámetros | Devuelve |
 |---|---|---|
 | `GET /api/companies` | `days` (default 7); header `x-hs-key` | `{ completo, total, acelerando, empresas }`; sin clave válida, solo las 10 primeras. Por empresa: `activas`, `nuevas` (vistas por primera vez en `days`, sin contar la primera carga de la empresa), `senior` y top 3 `areas` (sin `other`); ordenado por `nuevas` |
-| `GET /api/jobs` | `company` (exacto), `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000) | vacantes activas, más recientes primero |
-| `POST /api/leads` | JSON `{ email, empresa }` | 201, o 400 si el email no es válido |
+| `GET /api/jobs` | `company` (exacto), `q` (título), `role`, `seniority`, `source`, `days` (publicadas en los últimos N días), `limit` (máx. 1000 con clave `x-hs-key`, 25 sin ella) | vacantes activas, más recientes primero |
+| `POST /api/leads` | JSON `{ email, empresa }` | 201; 400 si el email no es válido; 429 pasadas 5 solicitudes por hora desde la misma IP |
 | `GET /api/stats` | - | totales por seniority, rol y fuente, publicaciones de los últimos 30 días y `actualizado` (último `last_seen`) |
 | `GET /api/health` | - | `{ ok, db }` |
 

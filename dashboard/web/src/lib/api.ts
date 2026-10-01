@@ -95,7 +95,9 @@ export async function enviarLead(email: string, empresa: string): Promise<void> 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, empresa }),
   });
-  if (!res.ok) throw new Error(res.status === 400 ? "Revisá el email." : "No pudimos enviarlo, probá de nuevo.");
+  if (!res.ok) throw new Error(
+      res.status === 400 ? "Revisá el email." : res.status === 429 ? "Demasiados intentos, probá en una hora." : "No pudimos enviarlo, probá de nuevo.",
+    );
 }
 
 export function fetchJobs(params: JobsParams): Promise<Job[]> {

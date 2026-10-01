@@ -37,7 +37,7 @@ export default function Page() {
             Para software factories y agencias de staffing IT: cada lunes, las
             empresas tech que más vacantes de backend, data o DevOps abrieron
             esa semana, con el link a cada búsqueda y listas para tu CRM.
-            USD 49/mes · 14 días gratis.
+            14 días gratis, sin tarjeta.
           </p>
         </div>
 

@@ -62,3 +62,10 @@ export function validarLead(body) {
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
   return { email, empresa: String(body?.empresa ?? '').trim().slice(0, 120) };
 }
+
+// Tope de resultados de /api/jobs: sin clave solo una muestra, para que la
+// lista completa no sirva para reconstruir el ranking pago.
+export const MUESTRA_GRATIS = 25;
+export function topeJobs(limit, completo) {
+  return Math.min(Number(limit) || 200, completo ? 1000 : MUESTRA_GRATIS);
+}

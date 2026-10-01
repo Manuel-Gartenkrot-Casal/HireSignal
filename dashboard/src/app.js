@@ -5,7 +5,7 @@ import fs from 'fs';
 import express from 'express';
 import * as mongo from 'mongodb';
 
-import { armarFiltro, pipelineEmpresas, validarLead } from './filtro.js';
+import { armarFiltro, pipelineEmpresas, topeJobs, validarLead } from './filtro.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,6 +25,8 @@ export const MONGO_DB = process.env.MONGO_DB || 'hiresignal';
 
 // Sin clave se ven las primeras GRATIS empresas del ranking; el resto es pago.
 const GRATIS = 10;
+// Tope de pedidos de prueba por IP y hora (POST /api/leads).
+const LEADS_POR_HORA = 5;
 
 /** Clave de cliente (header x-hs-key) activa en la colección `claves`. */
 async function tieneAcceso(req, db) {
@@ -40,6 +42,7 @@ function fallar(res, err) {
 export default function createApp() {
 
   const app = express();
+  app.set('trust proxy', 1); // detrás de Vercel/Render, req.ip es la del cliente
   app.use(express.json({ limit: '10kb' }));
 
   async function getDB() {
@@ -50,14 +53,14 @@ export default function createApp() {
   // ── GET /api/jobs ──────────────────────────────────────────────────────────
   app.get('/api/jobs', async (req, res) => {
     try {
-      const { limit = 200 } = req.query;
       const db = await getDB();
       const filtro = armarFiltro(req.query);
+      const tope = topeJobs(req.query.limit, await tieneAcceso(req, db));
 
       const jobs = await db.collection('jobs')
         .find(filtro, { projection: { raw: 0 } })
         .sort({ posted_date: -1 })
-        .limit(Math.min(Number(limit) || 200, 1000))
+        .limit(tope)
         .toArray();
 
       res.json(jobs);
@@ -86,17 +89,20 @@ export default function createApp() {
   });
 
   // ── POST /api/leads ────────────────────────────────────────────────────────
-  // ponytail: sin rate limit; un bot puede llenar la colección. Agregar uno
-  // (o un captcha) si aparecen leads basura.
+  // Límite por IP contado en Mongo (en serverless la memoria no se comparte).
+  // ponytail: no frena a un bot con muchas IPs; agregar captcha si hace falta.
   app.post('/api/leads', async (req, res) => {
     const lead = validarLead(req.body);
     if (!lead) return res.status(400).json({ error: 'Email inválido' });
     try {
       const db = await getDB();
       const ahora = new Date().toISOString();
+      const haceUnaHora = new Date(Date.now() - 36e5).toISOString();
+      const recientes = await db.collection('leads').countDocuments({ ip: req.ip, actualizado: { $gte: haceUnaHora } });
+      if (recientes >= LEADS_POR_HORA) return res.status(429).json({ error: 'Demasiados intentos, probá más tarde' });
       await db.collection('leads').updateOne(
         { email: lead.email },
-        { $set: { empresa: lead.empresa, actualizado: ahora }, $setOnInsert: { creado: ahora } },
+        { $set: { empresa: lead.empresa, ip: req.ip, actualizado: ahora }, $setOnInsert: { creado: ahora } },
         { upsert: true },
       );
       res.status(201).json({ ok: true });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { armarFiltro, pipelineEmpresas, validarLead } from '../src/filtro.js';
+import { armarFiltro, pipelineEmpresas, topeJobs, validarLead } from '../src/filtro.js';
 
 test('un objeto en la query no inyecta operadores', () => {
   const f = armarFiltro({ source: { $ne: 'x' }, role: { $gt: '' } });
@@ -47,4 +47,12 @@ test('validarLead acepta emails válidos y normaliza', () => {
   assert.equal(validarLead({ email: { $ne: '' } }), null);
   assert.equal(validarLead(undefined), null);
   assert.equal(validarLead({ email: 'a@b.co', empresa: 'y'.repeat(500) }).empresa.length, 120);
+});
+
+test('topeJobs: sin clave solo muestra, con clave hasta 1000', () => {
+  assert.equal(topeJobs('1000', false), 25);
+  assert.equal(topeJobs(undefined, false), 25);
+  assert.equal(topeJobs('5', false), 5);
+  assert.equal(topeJobs('5000', true), 1000);
+  assert.equal(topeJobs('abc', true), 200);
 });
