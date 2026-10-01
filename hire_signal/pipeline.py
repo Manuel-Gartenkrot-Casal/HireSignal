@@ -18,6 +18,24 @@ def _cargar_companies(path: str | Path) -> list[dict]:
     return data.get("companies", [])
 
 
+def _dedupe(jobs: list[Job], max_ubicaciones: int = 5) -> list[Job]:
+    """Un solo Job por (empresa, título); el mismo puesto publicado en varias
+    ciudades conserva todas las ubicaciones en vez de perderlas."""
+    unicos: dict[str, Job] = {}
+    ubicaciones: dict[str, list[str]] = {}
+    for job in jobs:
+        k = job.dedup_key
+        unicos.setdefault(k, job)
+        lista = ubicaciones.setdefault(k, [])
+        if job.location and job.location not in lista:
+            lista.append(job.location)
+    for k, job in unicos.items():
+        lista = ubicaciones[k]
+        extra = f" (+{len(lista) - max_ubicaciones})" if len(lista) > max_ubicaciones else ""
+        job.location = "; ".join(lista[:max_ubicaciones]) + extra
+    return list(unicos.values())
+
+
 def run(
     companies_path: str | Path = COMPANIES_PATH,
     sources: Optional[list[str]] = None,
@@ -43,11 +61,7 @@ def run(
             jobs.append(job)
         print(f"[pipeline] {spider.name}: {len(encontrados)} jobs")
 
-    # Dedupe intra-ejecución (misma fuente + mismo título)
-    unicos: dict[str, Job] = {}
-    for job in jobs:
-        unicos[job.dedup_key] = job
-    return list(unicos.values())
+    return _dedupe(jobs)
 
 
 __all__ = ["run"]

@@ -268,6 +268,7 @@ function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; er
             <TableRow>
               <TableHead>Cargo</TableHead>
               <TableHead>Empresa</TableHead>
+              <TableHead className="hidden lg:table-cell">Ubicación</TableHead>
               <TableHead className="hidden md:table-cell">Seniority</TableHead>
               <TableHead className="hidden sm:table-cell">Fecha</TableHead>
               <TableHead className="text-right">Fuente</TableHead>
@@ -277,7 +278,7 @@ function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; er
             {loading
               ? Array.from({ length: 8 }, (_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                       <Skeleton className="h-5 w-full" />
                     </TableCell>
                   </TableRow>
@@ -285,7 +286,7 @@ function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; er
               : error || jobs.length === 0
               ? [
                   <TableRow key="vacio">
-                    <TableCell className="py-10 text-center text-muted-foreground" colSpan={5}>
+                    <TableCell className="py-10 text-center text-muted-foreground" colSpan={6}>
                       {error
                         ? "No pudimos cargar las vacantes. Reintentá en unos minutos."
                         : "Ninguna vacante coincide con esos filtros."}
@@ -307,6 +308,9 @@ function JobsTable({ jobs, loading, error }: { jobs: Job[]; loading: boolean; er
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {j.company}
+                    </TableCell>
+                    <TableCell className="hidden max-w-[200px] truncate text-muted-foreground lg:table-cell" title={j.location}>
+                      {j.location || "-"}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge

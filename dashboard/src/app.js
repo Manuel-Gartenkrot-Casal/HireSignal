@@ -5,6 +5,8 @@ import fs from 'fs';
 import express from 'express';
 import * as mongo from 'mongodb';
 
+import { armarFiltro } from './filtro.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let cache = globalThis.__hsMongo;
@@ -40,15 +42,8 @@ export default function createApp() {
   app.get('/api/jobs', async (req, res) => {
     try {
       const { limit = 200 } = req.query;
-      // String(): evita inyección de operadores (?source[$ne]=x llega como objeto).
-      const [role, seniority, source, q, days] = ['role', 'seniority', 'source', 'q', 'days'].map((k) => String(req.query[k] ?? ''));
       const db = await getDB();
-      const filtro = { active: true };
-      if (role) filtro.role_category = role;
-      if (seniority) filtro.seniority = seniority;
-      if (source) filtro.sources = source;
-      if (q) filtro.title = { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-      if (Number(days) > 0) filtro.posted_date = { $gte: new Date(Date.now() - Number(days) * 864e5).toISOString() };
+      const filtro = armarFiltro(req.query);
 
       const jobs = await db.collection('jobs')
         .find(filtro, { projection: { raw: 0 } })

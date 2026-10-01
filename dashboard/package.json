@@ -8,6 +8,7 @@
     "build:web": "cd web && npm run build",
     "build": "npm run build:web",
     "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
     "setup": "npm install && cd web && npm install && cd .. && npm run build:web"
   },
   "dependencies": {
